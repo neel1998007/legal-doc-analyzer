@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=legal_user
+      - POSTGRES_PASSWORD=legal_password_123
+      - POSTGRES_DB=legal_doc_db
+    volumes:
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  chromadb:
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
