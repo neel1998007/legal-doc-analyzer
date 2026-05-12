@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import auth
+from app.api import auth, documents
 from app.core.database import test_connection
 
 app = FastAPI(
@@ -21,7 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
 app.include_router(auth.router)
+app.include_router(documents.router)
 
 @app.get("/")
 async def root():
