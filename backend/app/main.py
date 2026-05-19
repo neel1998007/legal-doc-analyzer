@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import auth, documents, rag
+from app.api import auth, documents, rag, jobs
 from app.core.database import test_connection
 
 app = FastAPI(
@@ -24,7 +24,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(rag.router)
-
+app.include_router(jobs.router)
 
 @app.get("/")
 async def root():
@@ -35,12 +35,10 @@ async def root():
         "docs": "Visit /docs for API documentation",
     }
 
-
 @app.get("/health")
 async def health_check():
     db_status = "connected" if test_connection() else "disconnected"
     return {"status": "healthy", "database": db_status, "services": "operational"}
-
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

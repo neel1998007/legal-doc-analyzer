@@ -15,6 +15,9 @@ from app.schemas.rag import ProcessDocumentResponse
 from app.services.document_service import DocumentService
 from app.services.rag_service import RAGService
 from app.services.chromadb_service import ChromaDBService
+from rq import Queue
+from app.core.redis_client import get_redis_connection
+from app.tasks.document_tasks import process_document_task
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -171,4 +174,40 @@ async def get_document_stats(
         "pending_documents": len(documents) - processed_count,
         "total_storage_bytes": total_size,
         "total_storage_mb": round(total_size / 1024 / 1024, 2),
+    }
+
+@router.post("/{document_id}/process-async")
+async def process_document_async(
+    document_id: uuid.UUID,
+    force: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    document = DocumentService.get_document_by_id(db, document_id, current_user.id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    redis_conn = get_redis_connection()
+    queue = Queue("document_processing", connection=redis_conn)
+
+    job = queue.enqueue(
+        process_document_task,
+        str(document_id),
+        str(current_user.id),
+        force=force,
+        job_timeout=900,  # 15 minutes
+    )
+    job.meta["user_id"] = str(current_user.id)
+    job.meta["document_id"] = str(document_id)
+    job.save_meta()
+
+    # Update DB status immediately
+    document.processing_status = "queued"
+    document.processing_error = None
+    db.commit()
+
+    return {
+        "job_id": job.id,
+        "status": job.get_status(),
+        "document_id": str(document_id),
     }
