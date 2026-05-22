@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS documents (
     original_filename VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
     file_size INTEGER NOT NULL,
-    file_type VARCHAR(50) NOT NULL,
+    file_type VARCHAR(255) NOT NULL,
     processed BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

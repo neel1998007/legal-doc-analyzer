@@ -1,15 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
 import uuid
+from typing import Optional
+
 
 class DocumentCreate(BaseModel):
-    """Schema for document upload"""
     original_filename: str
     file_type: str
 
+
 class DocumentResponse(BaseModel):
-    """Schema for document data in responses"""
     id: uuid.UUID
     user_id: uuid.UUID
     filename: str
@@ -19,9 +19,10 @@ class DocumentResponse(BaseModel):
     processed: bool
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    # New fields for async processing visibility
+    processing_status: str
+    processing_error: Optional[str] = None
+    processed_at: Optional[datetime] = None
+    processing_job_id: Optional[str] = None
 
-class DocumentListResponse(BaseModel):
-    """Schema for list of documents"""
-    documents: list[DocumentResponse]
-    total: int
+    model_config = {"from_attributes": True}

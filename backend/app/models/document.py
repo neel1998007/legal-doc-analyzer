@@ -16,14 +16,16 @@ class Document(Base):
     original_filename = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, nullable=False)
-    file_type = Column(String(50), nullable=False)
+
+    # FIX: was String(50) which is too small for DOCX MIME type
+    file_type = Column(String(255), nullable=False)
 
     processed = Column(Boolean, default=False)
 
-    # NEW: processing tracking
     processing_status = Column(String(20), nullable=False, server_default="uploaded")
     processing_error = Column(Text, nullable=True)
     processed_at = Column(DateTime(timezone=True), nullable=True)
+    processing_job_id = Column(String(50), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

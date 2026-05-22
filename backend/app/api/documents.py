@@ -187,6 +187,15 @@ async def process_document_async(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    # Duplicate-job protection (business critical)
+    if document.processing_status in ("queued", "processing") and not force:
+        return {
+            "message": "Document is already queued/processing",
+            "document_id": str(document_id),
+            "processing_status": document.processing_status,
+            "job_id": document.processing_job_id,
+        }
+
     redis_conn = get_redis_connection()
     queue = Queue("document_processing", connection=redis_conn)
 
@@ -201,13 +210,33 @@ async def process_document_async(
     job.meta["document_id"] = str(document_id)
     job.save_meta()
 
-    # Update DB status immediately
+    # Update DB immediately
     document.processing_status = "queued"
     document.processing_error = None
+    document.processing_job_id = job.id
     db.commit()
 
     return {
         "job_id": job.id,
         "status": job.get_status(),
         "document_id": str(document_id),
+    }
+
+@router.get("/{document_id}/processing-status")
+async def get_processing_status(
+    document_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    document = DocumentService.get_document_by_id(db, document_id, current_user.id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return {
+        "document_id": str(document.id),
+        "processed": document.processed,
+        "processing_status": document.processing_status,
+        "processing_error": document.processing_error,
+        "processed_at": str(document.processed_at) if document.processed_at else None,
+        "processing_job_id": document.processing_job_id,
     }
